@@ -117,6 +117,8 @@ app.get('/sparql-proxy/:endpoint/:query', function (req, res) {
 
 var vis_configurationGraph = "http://linda-project.eu/visualization-configuration";
 var vis_configurationEndpoint = "http://localhost:8890/sparql";
+vis_configurationEndpoint = "http://localhost:8080/openrdf-sesame/repositories/visualization"; // override for sesame
+var vis_configurationUpdateEndpoint = "http://localhost:8080/openrdf-sesame/repositories/visualization/statements";
 
 var recommendationsByDataselectionID = {};
 var visualizationConfigurations = {};
@@ -136,6 +138,7 @@ app.get('/visualizations', function (req, res) {
             } else {
                 var dataselection = dataselections[id];
                 var endpoint = "http://localhost:8890/sparql";
+                endpoint = vis_configurationEndpoint; // override for sesame
                 var ontology_graph = "http://linda-project.eu/linda-visualization";
                 // console.log("Calculating suggestions for dataselection: ")
                 //console.log(JSON.stringify(dataselection));

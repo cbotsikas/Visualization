@@ -1,5 +1,9 @@
 var GraphStoreClient = require('graph-store-client');
 var _ = require('lodash');
+var querystring = require("querystring");
+var http = require('http');
+var url = require('url');
+var Q = require('q');
 
 function store(vis_config, dataselection, config_id, config_name, config_graph, config_endpoint) {
     console.log("STORE VISUALIZATION CONFIGURATION");
@@ -128,19 +132,62 @@ function store(vis_config, dataselection, config_id, config_name, config_graph, 
 
     query += "} \n";
     query += "} \n";
+    query += "WHERE { } \n";
 
     console.log("STORE VISUALIZATION CONFIGURATION - INSERT QUERY");
     console.log(query);
 
-    var client = new GraphStoreClient(config_endpoint, null);
-    return client.query(query).then(function (result, err) {
-        if (err) {
-            console.log('visualization_backend: Could not execute insert query: ' + err);
-            return;
-        }
-        console.log("SPARQL_RESULT");
-        console.dir(result);
-        return result;
+//    var client = new GraphStoreClient(config_endpoint, null);
+//    return client._request({
+//            method: "POST",
+//            path: config_endpoint+"/statements",
+//            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+//            entity: querystring.stringify({"update":query})
+//    }).then(function (result, err) {
+//        if (err) {
+//            console.log('visualization_backend: Could not execute insert query: ' + err);
+//            return;
+//        }
+//        console.log("SPARQL_RESULT");
+//        console.dir(result);
+//        return result;
+//    });
+    return Q.Promise(function(resolve, reject, notify) {
+        var postData = querystring.stringify({"update":query});
+        var myEndpoint = url.parse(config_endpoint+"/statements");
+        var options = {
+            host: myEndpoint.hostname,
+            port: myEndpoint.port,
+            path: myEndpoint.path,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': postData.length
+            }
+        };
+        //console.dir(options);
+        var request = http.request(options, function (response) {
+            response.setEncoding('utf8');
+            response.on('data', function (result) {
+                console.log("SPARQL_RESULT data");
+                console.dir(result);
+                resolve(result);
+            });
+        });
+        request.on('response', function (response) {
+            console.log("SPARQL_RESULT response");
+            //console.dir(response);
+            resolve(response);
+        });
+        request.on('error', function (e) {
+            console.log('visualization_backend: Could not execute insert query: ');
+            console.log(e);
+            reject(e);
+        });
+        console.log("sending request data");
+        request.write(postData);
+        request.end();
+        console.log("request send, waiting for resp");
     });
 }
 
